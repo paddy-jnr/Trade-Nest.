@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Social Media Growth Tips — Trade Nest</title>
+<style>
+  :root{--bg:#fbfbfd;--panel:#fff;--primary:#6c4ed2;--primary-dark:#563ab8;--muted:#6b6b6b;--border:#e6e0ef;--radius:14px}
+  *{box-sizing:border-box} body{margin:0;font-family:Inter,"Segoe UI",system-ui,Arial;background:var(--bg);color:#222}
+  .wrap{max-width:1080px;margin:auto;padding:18px 18px 42px}
+  .back{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--border);background:var(--panel);padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:700;text-decoration:none;color:#222;box-shadow:0 6px 18px rgba(0,0,0,.04)}
+  .back:hover{transform:translateY(-1px)}
+  .title{font-size:22px;margin:16px 0 8px}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:0 6px 18px rgba(0,0,0,.04)}
+  label{font-size:13px;color:var(--muted);font-weight:700;margin-bottom:6px;display:block}
+  input,select,textarea{width:100%;border:1px solid var(--border);border-radius:12px;padding:10px 12px;font-size:14px;background:#fff;outline:none}
+  textarea{min-height:90px}
+  .grid{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+  .btn{background:var(--primary);color:#fff;border:none;padding:12px 16px;border-radius:12px;font-weight:800;cursor:pointer}
+  .btn:hover{background:var(--primary-dark)}
+  .muted{color:var(--muted);font-size:13px}
+  .out h3{margin:14px 0 6px}
+  pre{white-space:pre-wrap;background:#f8f7ff;border:1px solid #eee;padding:12px;border-radius:10px}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <a class="back" href="growth_tool.html">← Back to Growth Tools</a>
+    <button id="setKeyBtn" class="back" style="padding:8px 12px">Set API Key</button>
+  </div>
+  <h1 class="title">Social Media Tips & Strategy</h1>
+  <p class="muted">AI crafts a 7-day content plan, posting times, hooks, captions (with hashtags), plus engagement playbook.</p>
+
+  <section class="grid">
+    <div class="panel">
+      <label>Product / Offer *</label>
+      <input id="product" placeholder="e.g., Organic lip balm" />
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <div style="flex:1">
+          <label>Primary Platform</label>
+          <select id="platform"><option>Instagram</option><option>TikTok</option><option>Facebook</option><option>X/Twitter</option><option>YouTube Shorts</option></select>
+        </div>
+        <div style="flex:1">
+          <label>Target Audience</label>
+          <input id="aud" placeholder="e.g., Gen Z, skincare fans" />
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <div style="flex:1">
+          <label>Goal</label>
+          <select id="goal"><option>Sales</option><option>Reach</option><option>Leads</option><option>Community</option></select>
+        </div>
+        <div style="flex:1">
+          <label>Budget (optional)</label>
+          <input id="budget" placeholder="e.g., ₦50,000" />
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <label>Notes</label>
+        <textarea id="notes" placeholder="Tone, constraints, special promos, etc."></textarea>
+      </div>
+      <div class="actions">
+        <button class="btn" id="gen">Generate Plan</button>
+        <button class="btn" id="regen" style="background:#f2efff;color:#382e8f">Regenerate</button>
+        <button class="back" id="copy">Copy All</button>
+      </div>
+      <div id="load" class="muted" style="margin-top:10px"></div>
+    </div>
+
+    <div class="panel out" id="out">
+      <h3>Your AI Strategy</h3>
+      <pre id="txt">—</pre>
+    </div>
+  </section>
+</main>
+
+<script>
+  function getKey(){ return localStorage.getItem('tn_ai_key')||'' }
+  document.getElementById('setKeyBtn').onclick=()=>{ const v=prompt('Paste your AI API key:',getKey()); if(v!=null){localStorage.setItem('tn_ai_key',v.trim()); alert('Saved.');} };
+
+  async function callAI(prompt){
+    const key=getKey(); if(!key) throw new Error('Missing API key.');
+    const res=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'gpt-4o-mini',temperature:0.8,messages:[{role:'system',content:'You are a social media strategist. Return a tight, actionable plan with day-by-day schedule, posting times per platform, 3 hook ideas per post, 1 caption + 8–12 hashtags, engagement steps, and 3 KPI targets.'},{role:'user',content:prompt}]})});
+    const j=await res.json(); if(!res.ok) throw new Error(j.error?.message||'AI error'); return j.choices?.[0]?.message?.content||'';
+  }
+
+  let lastPrompt='';
+  async function generate(){
+    const p=document.getElementById('product').value.trim();
+    if(!p) return alert('Add product');
+    const platform=document.getElementById('platform').value;
+    const aud=document.getElementById('aud').value||'broad';
+    const goal=document.getElementById('goal').value;
+    const budget=document.getElementById('budget').value||'organic only';
+    const notes=document.getElementById('notes').value||'';
+    const prompt=`Product: ${p}
+Audience: ${aud}
+Primary platform: ${platform}
+Goal: ${goal}
+Budget: ${budget}
+Notes: ${notes}
+Write a 7-day plan with post types, scripts for short videos (30–45s), calls-to-action, and daily engagement checklist. Format with headings and bullets.`;
+    lastPrompt=prompt;
+    const load=document.getElementById('load'); const txt=document.getElementById('txt');
+    load.textContent='Generating…'; txt.textContent='…';
+    try{ const out=await callAI(prompt); txt.textContent=out; }catch(e){ alert(e.message); txt.textContent='—'; } finally{ load.textContent='';}
+  }
+  document.getElementById('gen').onclick=generate;
+  document.getElementById('regen').onclick=()=>{ if(lastPrompt) generate(); else alert('Generate once first.'); }
+  document.getElementById('copy').onclick=()=>{ const t=document.getElementById('txt').textContent; navigator.clipboard.writeText(t).then(()=>alert('Copied')); };
+</script>
+</body>
+</html>

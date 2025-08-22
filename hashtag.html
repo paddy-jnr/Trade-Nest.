@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hashtag Generator — Trade Nest</title>
+<style>
+  :root{
+    --bg:#fbfbfd; --panel:#fff; --primary:#6c4ed2; --primary-dark:#563ab8;
+    --muted:#6b6b6b; --border:#e6e0ef; --radius:14px; --shadow:0 10px 30px rgba(28,18,54,.08);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter, "Segoe UI", system-ui, -apple-system, Arial;background:var(--bg);color:#222}
+  .wrap{max-width:1080px;margin:auto;padding:18px 18px 42px}
+  .top{display:flex;gap:10px;align-items:center;justify-content:space-between}
+  .back{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--border);background:var(--panel);padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.04);text-decoration:none;color:#222}
+  .back:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+  .title{font-size:22px;margin:16px 0 8px}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:0 6px 18px rgba(0,0,0,.04)}
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  label{font-size:13px;color:var(--muted);font-weight:700;margin-bottom:6px;display:block}
+  input,select,textarea{width:100%;border:1px solid var(--border);border-radius:12px;padding:12px;font-size:14px;background:#fff;outline:none}
+  textarea{min-height:80px;resize:vertical}
+  .btn{background:var(--primary);color:#fff;border:none;padding:12px 16px;border-radius:12px;font-weight:800;cursor:pointer}
+  .btn:hover{background:var(--primary-dark);transform:translateY(-1px)}
+  .btn.secondary{background:#f2efff;color:#382e8f}
+  .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .chip{padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:#fff;cursor:pointer}
+  .chip.active{background:#efeaff;color:#3a2bb0;border-color:#e2d9ff}
+  .out{margin-top:16px}
+  .tags{display:flex;flex-wrap:wrap;gap:8px}
+  .tag{background:#f7f5ff;border:1px solid #e7e2ff;color:#3a2bb0;padding:8px 10px;border-radius:999px;font-weight:700;cursor:pointer}
+  .muted{color:var(--muted);font-size:13px}
+  .hidden{display:none}
+  /* reveal / load */
+  .reveal{opacity:0;transform:translateY(14px);transition:all .5s cubic-bezier(.2,.8,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+  .spinner{width:22px;height:22px;border:3px solid #ddd;border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media (max-width:820px){.grid{grid-template-columns:1fr}.grid-3{grid-template-columns:1fr 1fr}}
+  @media (max-width:520px){.grid-3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+  <main class="wrap reveal">
+    <div class="top">
+      <a class="back" href="growth_tool.html" aria-label="Back to Growth Tools">← Back to Growth Tools</a>
+      <button class="chip" id="setKeyBtn" title="Set AI API Key">Set API Key</button>
+    </div>
+
+    <h1 class="title">Hashtag Generator</h1>
+    <p class="muted">Give us a little context and we’ll craft platform-ready hashtags you can copy with one click.</p>
+
+    <section class="panel" aria-label="Hashtag form">
+      <div class="grid">
+        <div>
+          <label for="product">Product / Offer *</label>
+          <input id="product" placeholder="e.g., Handmade shea butter soap" required />
+        </div>
+        <div>
+          <label for="audience">Audience / Niche</label>
+          <input id="audience" placeholder="e.g., skincare lovers, eco-conscious buyers" />
+        </div>
+      </div>
+
+      <div class="grid" style="margin-top:10px">
+        <div>
+          <label for="lang">Language</label>
+          <input id="lang" placeholder="e.g., English, Yoruba" />
+        </div>
+        <div>
+          <label for="region">Region</label>
+          <input id="region" placeholder="e.g., Nigeria, West Africa, Global" />
+        </div>
+      </div>
+
+      <div class="bar" style="margin-top:10px">
+        <span class="muted" style="font-weight:700">Platforms:</span>
+        <button class="chip platform active" data-v="Instagram">Instagram</button>
+        <button class="chip platform" data-v="TikTok">TikTok</button>
+        <button class="chip platform" data-v="X/Twitter">X</button>
+        <button class="chip platform" data-v="Facebook">Facebook</button>
+        <button class="chip platform" data-v="YouTube">YouTube</button>
+      </div>
+
+      <div class="bar">
+        <span class="muted" style="font-weight:700">Goal:</span>
+        <button class="chip goal active" data-v="reach">Reach</button>
+        <button class="chip goal" data-v="sales">Sales</button>
+        <button class="chip goal" data-v="community">Community</button>
+        <button class="chip goal" data-v="brand">Brand Awareness</button>
+      </div>
+
+      <div class="bar">
+        <button class="btn" id="genBtn">Generate Hashtags</button>
+        <div id="loading" class="hidden" style="display:inline-flex;gap:8px;align-items:center">
+          <div class="spinner"></div><span class="muted">Crafting hashtags…</span>
+        </div>
+        <button class="btn secondary hidden" id="copyAll">Copy All</button>
+        <button class="chip hidden" id="copyTop">Copy Top 10</button>
+        <button class="chip hidden" id="downloadCsv">Export CSV</button>
+      </div>
+
+      <div class="out">
+        <div id="tags" class="tags" aria-live="polite"></div>
+        <p id="hint" class="muted hidden">Tip: click a tag to copy it.</p>
+      </div>
+    </section>
+  </main>
+
+<script>
+  // Reveal on load
+  requestAnimationFrame(()=>document.querySelector('.wrap').classList.add('in'));
+
+  // API key helper
+  function getKey(){ return localStorage.getItem('tn_ai_key') || '' }
+  function setKey(k){ localStorage.setItem('tn_ai_key', k||'') }
+  document.getElementById('setKeyBtn').addEventListener('click', ()=>{
+    const v = prompt('Paste your AI API key(ChatGPT) (stored locally):', getKey());
+    if(v!=null){ setKey(v.trim()); alert('Key saved.'); }
+  });
+
+  // Simple AI call (OpenAI Chat Completions by default)
+  async function callAI(prompt){
+    const key = getKey();
+    if(!key) throw new Error('Missing API key. Click “Set API Key (chatGPT)”.');
+    const res = await fetch('https://api.openai.com/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({
+        model:'gpt-4o-mini',
+        temperature:0.7,
+        messages:[
+          {role:'system', content:'You help craft concise, platform-ready hashtags. Output only hashtags separated by spaces. Avoid duplicates; mix broad and niche.'},
+          {role:'user', content: prompt}
+        ]
+      })
+    });
+    const json = await res.json();
+    if(!res.ok) throw new Error(json.error?.message || 'AI error');
+    return json.choices?.[0]?.message?.content || '';
+  }
+
+  // UI logic
+  const tagsEl = document.getElementById('tags');
+  const hintEl = document.getElementById('hint');
+  const loading = document.getElementById('loading');
+  const copyAllBtn = document.getElementById('copyAll');
+  const copyTopBtn = document.getElementById('copyTop');
+  const csvBtn = document.getElementById('downloadCsv');
+
+  function toggleSel(list, el){
+    list.forEach(b=>b.classList.toggle('active', b===el));
+  }
+  document.querySelectorAll('.platform').forEach(b=> b.addEventListener('click',()=>toggleSel(document.querySelectorAll('.platform'),b)));
+  document.querySelectorAll('.goal').forEach(b=> b.addEventListener('click',()=>toggleSel(document.querySelectorAll('.goal'),b)));
+
+  function parseHashtags(text){
+    // Collect unique #tags
+    const rx = /#[\p{L}\p{N}_]+/gu;
+    const set = new Set();
+    let m;
+    while((m = rx.exec(text))!==null){ set.add(m[0]); }
+    // fallback: split by space
+    if(set.size===0) text.split(/\s+/).forEach(t=>{ if(t.startsWith('#')) set.add(t) });
+    return [...set];
+  }
+
+  function renderTags(list){
+    tagsEl.innerHTML = '';
+    list.forEach(t=>{
+      const b = document.createElement('button');
+      b.className='tag';
+      b.textContent=t;
+      b.title='Click to copy';
+      b.addEventListener('click', ()=>copyText(t, 'Copied '+t));
+      tagsEl.appendChild(b);
+    });
+    hintEl.classList.toggle('hidden', list.length===0);
+    copyAllBtn.classList.toggle('hidden', list.length===0);
+    copyTopBtn.classList.toggle('hidden', list.length===0);
+    csvBtn.classList.toggle('hidden', list.length===0);
+  }
+
+  async function generate(){
+    const product = document.getElementById('product').value.trim();
+    if(!product) return alert('Please describe your product.');
+    const audience = document.getElementById('audience').value.trim();
+    const lang = document.getElementById('lang').value.trim() || 'English';
+    const region = document.getElementById('region').value.trim() || 'Global';
+    const platform = document.querySelector('.platform.active')?.dataset.v || 'Instagram';
+    const goal = document.querySelector('.goal.active')?.dataset.v || 'reach';
+
+    const prompt = `Generate 30 fresh hashtags for ${platform} in ${lang} targeting ${region}.
+Product: ${product}.
+Audience: ${audience||'general audience'}.
+Goal: ${goal}.
+Rules: 30 items, include mix of broad and long-tail; no numbers-only; no spaces; return space-separated list only.`;
+
+    try{
+      loading.classList.remove('hidden');
+      const out = await callAI(prompt);
+      const parsed = parseHashtags(out).slice(0,30);
+      if(parsed.length===0) throw new Error('No hashtags found.');
+      renderTags(parsed);
+    }catch(err){
+      console.error(err);
+      alert(err.message || 'Failed to generate. Check your key.');
+    }finally{
+      loading.classList.add('hidden');
+    }
+  }
+
+  function copyText(text, msg='Copied!'){
+    navigator.clipboard.writeText(text).then(()=>{ toast(msg); });
+  }
+  function downloadCSV(rows){
+    const csv = rows.join(', ');
+    const blob = new Blob([csv], {type:'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement('a'),{href:url,download:'hashtags.csv'});
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+
+  // Toast
+  const toastEl = document.createElement('div');
+  toastEl.style.cssText='position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:10px;opacity:0;transition:opacity .3s;z-index:50';
+  document.body.appendChild(toastEl);
+  function toast(t){ toastEl.textContent=t; toastEl.style.opacity='1'; setTimeout(()=>toastEl.style.opacity='0',1600); }
+
+  document.getElementById('genBtn').addEventListener('click', generate);
+  copyAllBtn.addEventListener('click', ()=>{
+    const all = [...document.querySelectorAll('.tag')].map(x=>x.textContent).join(' ');
+    copyText(all, 'All hashtags copied');
+  });
+  copyTopBtn.addEventListener('click', ()=>{
+    const top = [...document.querySelectorAll('.tag')].slice(0,10).map(x=>x.textContent).join(' ');
+    copyText(top, 'Top 10 copied');
+  });
+  csvBtn.addEventListener('click', ()=>{
+    const rows = [...document.querySelectorAll('.tag')].map(x=>x.textContent);
+    downloadCSV(rows);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Digital Marketing Course Finder — Trade Nest</title>
+<style>
+  :root{--bg:#fbfbfd;--panel:#fff;--primary:#6c4ed2;--primary-dark:#563ab8;--muted:#6b6b6b;--border:#e6e0ef;--radius:14px}
+  *{box-sizing:border-box} body{margin:0;font-family:Inter,"Segoe UI",system-ui,Arial;background:var(--bg);color:#222}
+  .wrap{max-width:1080px;margin:auto;padding:18px 18px 42px}
+  .back{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--border);background:var(--panel);padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:700;text-decoration:none;color:#222;box-shadow:0 6px 18px rgba(0,0,0,.04)}
+  .back:hover{transform:translateY(-1px)}
+  .title{font-size:22px;margin:16px 0 8px}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:0 6px 18px rgba(0,0,0,.04)}
+  label{font-size:13px;color:var(--muted);font-weight:700;margin-bottom:6px;display:block}
+  input,select,textarea{width:100%;border:1px solid var(--border);border-radius:12px;padding:10px 12px;font-size:14px;background:#fff;outline:none}
+  .grid{display:grid;grid-template-columns:1.3fr .7fr;gap:14px}
+  .course{border:1px solid var(--border);border-radius:12px;padding:12px;background:#fff}
+  .course h4{margin:0 0 6px}
+  .course a{color:#3a2bb0;text-decoration:none;font-weight:700}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .btn{background:var(--primary);color:#fff;border:none;padding:12px 16px;border-radius:12px;font-weight:800;cursor:pointer}
+  .btn:hover{background:var(--primary-dark)}
+  .muted{color:var(--muted);font-size:13px}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <a class="back" href="growth_tool.html">← Back to Growth Tools</a>
+    <button class="back" id="setKeyBtn" style="padding:8px 12px">Set API Key</button>
+  </div>
+  <h1 class="title">Digital Marketing Course Finder</h1>
+  <p class="muted">Describe your product and skill level. AI recommends a short learning path and links to high-quality videos. (We also include quick YouTube search links.)</p>
+
+  <section class="grid">
+    <div class="panel">
+      <label>Product / Niche *</label>
+      <input id="product" placeholder="e.g., Afrocentric fashion accessories" />
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <div style="flex:1">
+          <label>Skill Level</label>
+          <select id="level"><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select>
+        </div>
+        <div style="flex:1">
+          <label>Learning Time Available / week</label>
+          <input id="time" placeholder="e.g., 3 hours" />
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <label>Focus Area</label>
+        <input id="focus" placeholder="e.g., TikTok ads, email marketing, SEO" />
+      </div>
+      <div class="actions">
+        <button class="btn" id="gen">Build Learning Path</button>
+        <button class="back" id="copy">Copy Plan</button>
+      </div>
+      <div id="load" class="muted" style="margin-top:10px"></div>
+    </div>
+
+    <div class="panel">
+      <h3 style="margin:0 0 10px">Recommended Modules & Videos</h3>
+      <div id="list" style="display:grid;gap:10px"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+  function getKey(){ return localStorage.getItem('tn_ai_key')||'' }
+  document.getElementById('setKeyBtn').onclick=()=>{ const v=prompt('Paste your AI API key:',getKey()); if(v!=null){localStorage.setItem('tn_ai_key',v.trim()); alert('Saved.');} };
+
+  async function callAI(prompt){
+    const key=getKey(); if(!key) throw new Error('Missing API key.');
+    const res=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'gpt-4o-mini',temperature:0.7,messages:[{role:'system',content:'You are a digital marketing mentor. Output a numbered learning path (5–8 modules). For each module, give 2 suggested video titles and short reasons. Avoid paywalled links.'},{role:'user',content:prompt}]})});
+    const j=await res.json(); if(!res.ok) throw new Error(j.error?.message||'AI error'); return j.choices?.[0]?.message?.content||'';
+  }
+
+  function ytSearchLink(q){ return 'https://www.youtube.com/results?search_query='+encodeURIComponent(q); }
+
+  document.getElementById('gen').onclick = async()=>{
+    const p=document.getElementById('product').value.trim(); if(!p) return alert('Add product');
+    const level=document.getElementById('level').value;
+    const time=document.getElementById('time').value||'2 hours';
+    const focus=document.getElementById('focus').value||'';
+    const prompt=`Create a step-by-step learning path for ${p}. Level: ${level}. Weekly time: ${time}. Focus: ${focus}. Include module names and 2 suggested video titles each.`;
+    const load=document.getElementById('load'); load.textContent='Finding courses…';
+    try{
+      const out=await callAI(prompt);
+      // Render text & build search links
+      const list=document.getElementById('list'); list.innerHTML='';
+      const lines=out.split('\n').filter(Boolean);
+      let current=null;
+      lines.forEach(line=>{
+        const m=line.match(/^\d+[\).\s-]+(.*)/);
+        if(m){
+          current=document.createElement('div'); current.className='course';
+          current.innerHTML=`<h4>${m[1]}</h4><div class="muted">Suggested videos:</div><ul></ul>`;
+          list.appendChild(current);
+        }else if(current){
+          const ul=current.querySelector('ul');
+          const title=line.replace(/^[\-\*\•]\s?/,'').trim();
+          if(!title) return;
+          const q=title.replace(/^Video:\s*/i,'').replace(/\[.*?\]/g,'').trim();
+          const li=document.createElement('li');
+          li.innerHTML=`<a href="${ytSearchLink(q)}" target="_blank" rel="noopener">${q}</a>`;
+          ul.appendChild(li);
+        }
+      });
+      if(!list.children.length){
+        const fallback=document.createElement('div'); fallback.className='course'; fallback.innerHTML=`<h4>Quick Start</h4><a href="${ytSearchLink(p+' digital marketing')}" target="_blank">YouTube search: ${p}</a>`;
+        list.appendChild(fallback);
+      }
+      window._courseText = out;
+    }catch(e){ alert(e.message); } finally{ load.textContent=''; }
+  };
+
+  document.getElementById('copy').onclick=()=>{ navigator.clipboard.writeText(window._courseText||'').then(()=>alert('Copied')); };
+</script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pricing Calculator — Trade Nest</title>
+<style>
+  :root{--bg:#fbfbfd;--panel:#fff;--primary:#6c4ed2;--primary-dark:#563ab8;--muted:#6b6b6b;--border:#e6e0ef;--radius:14px}
+  *{box-sizing:border-box} body{margin:0;font-family:Inter,"Segoe UI",system-ui,Arial;background:var(--bg);color:#222}
+  .wrap{max-width:1080px;margin:auto;padding:18px 18px 42px}
+  .back{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--border);background:var(--panel);padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:700;text-decoration:none;color:#222;box-shadow:0 6px 18px rgba(0,0,0,.04)}
+  .back:hover{transform:translateY(-1px)}
+  .title{font-size:22px;margin:16px 0 8px}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:0 6px 18px rgba(0,0,0,.04)}
+  label{font-size:13px;color:var(--muted);font-weight:700;margin-bottom:6px;display:block}
+  input,select{width:100%;border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:#fff;font-size:14px}
+  .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .btn{background:var(--primary);color:#fff;border:none;padding:12px 16px;border-radius:12px;font-weight:800;cursor:pointer}
+  .btn:hover{background:var(--primary-dark)}
+  .muted{color:var(--muted);font-size:13px}
+  .kpi{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
+  .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px}
+  .big{font-size:22px;font-weight:900;color:#3a2bb0}
+  pre{white-space:pre-wrap;background:#f8f7ff;border:1px solid #eee;padding:12px;border-radius:10px}
+  @media (max-width:900px){.grid,.kpi{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <a class="back" href="growth_tool.html">← Back to Growth Tools</a>
+    <button class="back" id="setKeyBtn" style="padding:8px 12px">Set API Key</button>
+  </div>
+  <h1 class="title">Pricing Calculator</h1>
+  <p class="muted">Compute a fair price with margins and fees, then get AI advice on strategy and psychological pricing.</p>
+
+  <section class="panel">
+    <div class="grid">
+      <div><label>Currency</label><select id="cur"><option>₦</option><option>$</option><option>€</option><option>£</option></select></div>
+      <div><label>Cost of Goods (COGS)</label><input id="cogs" type="number" step="0.01" placeholder="e.g., 2500" /></div>
+      <div><label>Shipping Cost</label><input id="ship" type="number" step="0.01" value="0" /></div>
+      <div><label>Overhead %</label><input id="ovh" type="number" step="0.01" value="10" /></div>
+      <div><label>Marketplace/Payment Fee %</label><input id="fee" type="number" step="0.01" value="3" /></div>
+      <div><label>Target Profit Margin %</label><input id="margin" type="number" step="0.01" value="35" /></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:12px;align-items:center">
+      <button class="btn" id="calc">Calculate</button>
+      <button class="back" id="aiAdvice">Get AI Advice</button>
+      <span id="load" class="muted"></span>
+    </div>
+
+    <div class="kpi">
+      <div class="card"><div class="muted">Break-even Price</div><div id="breakeven" class="big">—</div></div>
+      <div class="card"><div class="muted">Recommended Price</div><div id="recommend" class="big">—</div></div>
+      <div class="card"><div class="muted">Profit at Recommended</div><div id="profit" class="big">—</div></div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="muted">AI Strategy</div>
+      <pre id="txt">—</pre>
+    </div>
+  </section>
+</main>
+
+<script>
+  function getKey(){ return localStorage.getItem('tn_ai_key')||'' }
+  document.getElementById('setKeyBtn').onclick=()=>{ const v=prompt('Paste your AI API key:',getKey()); if(v!=null){localStorage.setItem('tn_ai_key',v.trim()); alert('Saved.');} };
+
+  function money(cur, n){ return cur + (Number(n||0).toFixed(2)); }
+
+  function calculate(){
+    const cur=document.getElementById('cur').value;
+    const cogs=+document.getElementById('cogs').value||0;
+    const ship=+document.getElementById('ship').value||0;
+    const ovh=(+document.getElementById('ovh').value||0)/100;
+    const fee=(+document.getElementById('fee').value||0)/100;
+    const margin=(+document.getElementById('margin').value||0)/100;
+
+    const base = cogs + ship;
+    const withOvh = base*(1+ovh);
+    // Break-even includes marketplace fee on the price itself -> p - p*fee = withOvh -> p = withOvh/(1-fee)
+    const breakeven = withOvh/(1-fee);
+    // Target price for margin -> p - (cogs+ship) - p*fee - overhead%*base = margin*p
+    // Simplify using withOvh already added: breakeven gives zero profit. Add margin on price:
+    const recommend = withOvh / (1 - fee - margin);
+    const profit = recommend - breakeven;
+
+    document.getElementById('breakeven').textContent = money(cur, breakeven);
+    document.getElementById('recommend').textContent = money(cur, recommend);
+    document.getElementById('profit').textContent = money(cur, profit);
+    return {cur, cogs, ship, ovh:ovh*100, fee:fee*100, margin:margin*100, breakeven, recommend, profit};
+  }
+  document.getElementById('calc').onclick=calculate;
+
+  async function advice(){
+    const d = calculate();
+    const key=getKey(); if(!key) return alert('Set API key first.');
+    const load=document.getElementById('load'); load.textContent='Thinking…';
+    try{
+      const res=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'gpt-4o-mini',temperature:0.7,messages:[{role:'system',content:'You are a pricing strategist. Give short, practical advice: 1) price rationale, 2) charm price options (e.g., 9 endings), 3) discount ladder, 4) bundling ideas, 5) what to A/B test. 120–180 words.'},{role:'user',content:`Break-even: ${d.cur}${d.breakeven.toFixed(2)}, Recommended: ${d.cur}${d.recommend.toFixed(2)}, Margin target: ${d.margin}%`} ]})});
+      const j=await res.json(); if(!res.ok) throw new Error(j.error?.message||'AI error');
+      document.getElementById('txt').textContent=j.choices?.[0]?.message?.content||'';
+    }catch(e){ alert(e.message); } finally{ load.textContent=''; }
+  }
+  document.getElementById('aiAdvice').onclick=advice;
+</script>
+</body>
+</html>
