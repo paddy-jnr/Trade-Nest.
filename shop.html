@@ -65,6 +65,35 @@
   min-width: 120px;
   height: auto;
 }
+/* Make topbar responsive */
+@media (max-width: 600px) {
+  .topbar .in {
+    flex-direction: column;       /* stack items vertically */
+    align-items: stretch;         /* let items take full width */
+    gap: 10px;                    /* spacing between stacked items */
+  }
+
+  .brand-reveal {
+    display: flex;
+    justify-content: center;      /* center the logo */
+    margin-bottom: 6px;
+  }
+
+  .search {
+    width: 100%;                  /* search bar takes full width */
+  }
+
+  .search input {
+    width: 100%;                  /* input stretches fully */
+    border-radius: 10px;          /* slight radius (looks better stacked) */
+  }
+
+  .topbar nav {
+    display: flex;
+    justify-content: center;      /* center icons under search */
+    gap: 8px;
+  }
+}
 
 
 </style>
@@ -223,4 +252,5 @@
 </script>
 </body>
 </html>
+
 
